@@ -6,7 +6,6 @@ Each level is documented in its corresponding directory, with a detailed explana
 
 ## Table of contents
 
-- [about the project ] (#about-the-project)
 - [About the Project](https://www.notion.so/Leaffliction-11bd775f41e6809986ace63e12d25d2e?pvs=21)
 - [Getting Started](https://www.notion.so/Leaffliction-11bd775f41e6809986ace63e12d25d2e?pvs=21)
 - [Usage](https://www.notion.so/Leaffliction-11bd775f41e6809986ace63e12d25d2e?pvs=21)
@@ -48,4 +47,4 @@ su levelX
 su bonusX
 ```
 
-### Ressources
+## Ressources
