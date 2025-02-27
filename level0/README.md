@@ -19,11 +19,11 @@ level0@RainFall:~$ ./level0
 Segmentation fault (core dumped)
 ```
 
+The file is owned by **level1** and has the **setuid** bit.
+
 We use **GDB** to read the assembly code of the `level0` executable.
 
-```bash
-level0@RainFall:~$ gdb level0 
-# [...]
+```
 (gdb) disas main
 Dump of assembler code for function main:
    0x08048ec0 <+0>:     push   ebp
@@ -78,7 +78,7 @@ Dump of assembler code for function main:
 End of assembler dump.
 ```
 
-In the first lines, we notice that the `main()` function calls `atoi()`, and compares the returned value to check if it's equal to **0x1a7 (423)**. If not, it jumps past the `execv()` call and never calls it.
+In the first lines, we notice that the `main()` function calls `atoi()`, and compares the returned value to check if it's equal to `0x1a7`. If not, it jumps past the `execv()` call and never calls it.
 
 ```bash
 level0@RainFall:~$ ./level0 423
