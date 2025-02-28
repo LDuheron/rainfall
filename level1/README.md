@@ -191,7 +191,7 @@ gs             0x33	51
 | Information | Hexadecimal | Binary |
 | --- | --- | --- |
 | Before `ADD` | 0xbffff648 | 10111111111111111111011001001000 |
-| `AND` second operand | 0xfffffff0 | 11111111111111111111111111110000
+| `AND` second operand | 0xfffffff0 | 11111111111111111111111111110000 |
 | After `AND` | 0xbffff640 | 10111111111111111111011001000000 |
 
 As a result of this `AND` instruction, the stack pointer has been decremented by 8 bytes.
