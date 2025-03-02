@@ -108,7 +108,7 @@ The function:
 - Retrieves the value of a global variable stored at memory address `0x804988c` into the `%eax` register
 - Compares the value of `%eax` with`64` (`0x40` in hexadecimal)
 - If the value is equal to `64` :
-    - Prints a message using the `fwrite()` function ****
+    - Prints a message using the `fwrite()` function
     - Calls the system’s shell `/bin/sh`  using the `system()` function.
 
 ### Format string vulnerability
