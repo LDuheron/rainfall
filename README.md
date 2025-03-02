@@ -19,10 +19,10 @@ Each level is documented in its corresponding directory, with a detailed explana
 ifconfig
 ```
 
-1. Connect via SSH on port 4242 replacing XX with the level you want to access and <VM_IP_ADDRESS> with your VM’s actual IP.
+3. Connect via SSH on port 4242 replacing X with the level you want to access and <VM_IP_ADDRESS> with your VM’s actual IP.
 
 ```python
-ssh -p 4242 level00@<VM_IP_ADDRESS>
+ssh -p 4242 levelX@<VM_IP_ADDRESS>
 ```
 
 ## Usage
