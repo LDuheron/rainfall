@@ -113,7 +113,7 @@ The function:
 
 ### Format string vulnerability
 
-This function is subjected to a format string vulnerability which occurs when a user input is improperly used as a format string in functions like `printf()`, allowing attackers to manipulate memory, access sensitive data, or execute arbitrary code.
+This function is vulnerable to a format string vulnerability which occurs when a user input is improperly used as a format string in functions like `printf()`, allowing attackers to manipulate memory, access sensitive data, or execute arbitrary code.
 
 Our goal is to overwrite the value of the global variable stored at the address `0x804988c`(the one compared to `64`) and replace it with the number 64.
 
