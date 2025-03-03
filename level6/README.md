@@ -89,8 +89,6 @@ End of assembler dump.
 This function: 
 
 - **Aligns the stack**: Adjusts the stack pointer to ensure it is aligned to a 16-byte boundary, adhering to the System V AMD64 ABI calling convention.
-- Make a system call to the `malloc()` function with `0x40` (64 in decimal) as the argument size.
-- Move the return value of `malloc()` (a pointer) stored in `%eax` to the address `[esp + 0x1c]`.
 - Allocate memory : Invokes the `malloc()` function twice:
     - The first call requests 64 bytes (0x40 in hexadecimal), storing the returned pointer in `[esp + 0x1c]`.
     - The second call requests 4 bytes (0x4 in hexadecimal), storing the returned pointer in `[esp + 0x18]`.
